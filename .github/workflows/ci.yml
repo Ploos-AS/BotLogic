@@ -15,9 +15,17 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24.x'
+      - name: Generate module metadata
+        run: go mod tidy
+      - name: Upload generated go.sum
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-go-sum
+          path: go.sum
+          if-no-files-found: error
       - name: Verify module metadata
         run: |
-          go mod tidy\n          cat go.sum\n          git diff --exit-code -- go.mod go.sum
+          git diff --exit-code -- go.mod go.sum
           test -f go.sum
           test -z "$(git status --porcelain -- go.mod go.sum)"
       - run: go test ./...
