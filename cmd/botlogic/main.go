@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Ploos-AS/BotLogic/internal/logic"
+	"github.com/Ploos-AS/BotLogic/internal/api"
 )
 
 type server struct{ store *logic.Store }
@@ -18,7 +19,9 @@ type factRequest struct { Ruleset string `json:"ruleset"`; Fact logic.Fact `json
 type factBatchRequest struct { Ruleset string `json:"ruleset"`; Operations []logic.FactOperation `json:"operations"`; ExpectedRevision *uint64 `json:"expected_revision,omitempty"` }
 
 func writeJSON(w http.ResponseWriter,status int,v any){ w.Header().Set("Content-Type","application/json"); w.WriteHeader(status); _=json.NewEncoder(w).Encode(v) }
-func (s server) health(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"ok":true,"service":"botlogic","version":"0.1.5-m0.5"}) }
+func (s server) health(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"ok":true,"service":api.Service,"version":api.Version}) }
+func (s server) version(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,api.VersionResponse()) }
+func (s server) status(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"ok":true,"service":api.Service,"version":api.Version,"api":api.APIVersion,"rulesets":len(s.store.Names())}) }
 func (s server) rulesets(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"rulesets":s.store.Names()}) }
 
 func (s server) consult(w http.ResponseWriter,r *http.Request){
@@ -61,7 +64,7 @@ func main(){
 	dir:=os.Getenv("BOTLOGIC_DATA_DIR"); if dir=="" { dir="./data" }
 	store,err:=logic.NewStore(dir); if err!=nil { log.Fatal(err) }
 	s:=server{store:store}; mux:=http.NewServeMux()
-	mux.HandleFunc("GET /healthz",s.health); mux.HandleFunc("GET /readyz",s.health)
+	mux.HandleFunc("GET /healthz",s.health); mux.HandleFunc("GET /readyz",s.health); mux.HandleFunc("GET /v1/version",s.version); mux.HandleFunc("GET /v1/status",s.status)
 	mux.HandleFunc("GET /v1/rulesets",s.rulesets); mux.HandleFunc("GET /v1/facts",s.facts); mux.HandleFunc("POST /v1/facts/batch",s.factBatch); mux.HandleFunc("POST /v1/facts",s.factMutation); mux.HandleFunc("DELETE /v1/facts",s.factMutation); mux.HandleFunc("POST /v1/consult",s.consult); mux.HandleFunc("POST /v1/query",s.query); mux.HandleFunc("POST /v1/explain",s.explain)
 	log.Printf("BotLogic listening on %s with %d rulesets",addr,len(store.Names())); log.Fatal(http.ListenAndServe(addr,mux))
 }
