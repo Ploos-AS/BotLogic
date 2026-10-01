@@ -141,6 +141,19 @@ Example guarded transaction:
 
 A client can read revision 7, compute its update, and safely reject the write if another client has already advanced the ruleset to revision 8.
 
+## M1.0
+
+BotLogic M1.0 freezes the first stable standalone HTTP contract as **API v1**.
+
+- release version: `1.0.0`
+- API version: `v1`
+- `GET /v1/version`
+- `GET /v1/status`
+- compatibility policy documented in `docs/API-v1.md`
+- PBMP, BotWeb and BotAI remain optional and outside the core API dependency graph
+
+M1.0 is only marked PASS after the full CI baseline succeeds.
+
 ## Architecture
 
 ```text
