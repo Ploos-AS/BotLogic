@@ -17,8 +17,7 @@ jobs:
           go-version: '1.24.x'
       - name: Verify module metadata
         run: |
-          go mod tidy
-          git diff --exit-code -- go.mod go.sum
+          go mod tidy\n          cat go.sum\n          git diff --exit-code -- go.mod go.sum
           test -f go.sum
           test -z "$(git status --porcelain -- go.mod go.sum)"
       - run: go test ./...
