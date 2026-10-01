@@ -2,7 +2,6 @@ package logic
 
 import (
     "context"
-    "fmt"
     "sync"
 
     "github.com/ichiban/prolog"
@@ -31,15 +30,12 @@ func (e *Engine) Query(ctx context.Context, q string) ([]map[string]string, erro
         return nil, err
     }
     defer sols.Close()
+
     var out []map[string]string
     for sols.Next() {
-        var m map[string]prolog.Term
-        if err := sols.Scan(&m); err != nil {
+        var row map[string]string
+        if err := sols.Scan(&row); err != nil {
             return nil, err
-        }
-        row := map[string]string{}
-        for k, v := range m {
-            row[k] = fmt.Sprint(v)
         }
         out = append(out, row)
     }
