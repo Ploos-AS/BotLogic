@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -30,9 +29,16 @@ func (f Fact) key() string {
 func (f Fact) prolog() (string,error) {
 	if err:=f.validate(); err!=nil { return "",err }
 	args:=make([]string,len(f.Args))
-	for i,a:=range f.Args { args[i]=strconv.Quote(a) }
+	for i,a:=range f.Args { args[i]=quoteAtom(a) }
 	if len(args)==0 { return f.Predicate+".",nil }
 	return fmt.Sprintf("%s(%s).",f.Predicate,strings.Join(args,",")),nil
+}
+
+func quoteAtom(s string) string {
+	// ISO-style quoted atoms: a single quote inside an atom is represented
+	// by two single quotes. Keeping every argument quoted also prevents
+	// variables, operators, comments, or clauses from becoming source.
+	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
 }
 
 func sortedFacts(m map[string]Fact) []Fact {
