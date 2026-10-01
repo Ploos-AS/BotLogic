@@ -14,7 +14,8 @@ import (
 type server struct{ store *logic.Store }
 type consultRequest struct { Ruleset string `json:"ruleset"`; Source string `json:"source"` }
 type queryRequest struct { Ruleset string `json:"ruleset"`; Query string `json:"query"` }
-type factRequest struct { Ruleset string `json:"ruleset"`; Fact logic.Fact `json:"fact"` }\ntype factBatchRequest struct { Ruleset string `json:"ruleset"`; Operations []logic.FactOperation `json:"operations"` }
+type factRequest struct { Ruleset string `json:"ruleset"`; Fact logic.Fact `json:"fact"` }
+type factBatchRequest struct { Ruleset string `json:"ruleset"`; Operations []logic.FactOperation `json:"operations"` }
 
 func writeJSON(w http.ResponseWriter,status int,v any){ w.Header().Set("Content-Type","application/json"); w.WriteHeader(status); _=json.NewEncoder(w).Encode(v) }
 func (s server) health(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"ok":true,"service":"botlogic","version":"0.1.4-m0.4"}) }
