@@ -64,6 +64,27 @@ Example:
 {"ruleset":"irc-policy","query":"may_voice(X)."}
 ```
 
+## M0.2
+
+**M0.2 — PASS.** Rulesets can return explicit deterministic explanations through `POST /v1/explain`.
+
+Explanation queries must bind a `Proof` variable. M0.2 defines `Proof` as a portable textual proof identifier/trace supplied by the ruleset; BotLogic never invents an explanation for an arbitrary goal.
+
+Example rule:
+
+```prolog
+trusted(alice).
+may_voice(X, 'trusted-user') :- trusted(X).
+```
+
+Explain query:
+
+```json
+{"ruleset":"irc-policy","query":"may_voice(alice, Proof)."}
+```
+
+This boundary lets a caller such as BotAI turn the deterministic proof into natural language without making the LLM the authority for the decision.
+
 ## Architecture
 
 ```text
