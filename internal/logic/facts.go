@@ -23,7 +23,12 @@ func (f Fact) validate() error {
 }
 
 func (f Fact) key() string {
-	return fmt.Sprintf("%s/%d\x00%s", f.Predicate, len(f.Args), strings.Join(f.Args,"\x00"))
+	parts := make([]string, 0, len(f.Args)+1)
+	parts = append(parts, fmt.Sprintf("%s/%d", f.Predicate, len(f.Args)))
+	for _, a := range f.Args {
+		parts = append(parts, fmt.Sprintf("%d:%s", len(a), a))
+	}
+	return strings.Join(parts, "\x00")
 }
 
 func (f Fact) prolog() (string,error) {
