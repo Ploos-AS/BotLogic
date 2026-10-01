@@ -14,6 +14,7 @@ import (
 
 type server struct{ store *logic.Store }
 type consultRequest struct { Ruleset string `json:"ruleset"`; Source string `json:"source"` }
+type validateRequest struct { Source string `json:"source"` }
 type queryRequest struct { Ruleset string `json:"ruleset"`; Query string `json:"query"` }
 type factRequest struct { Ruleset string `json:"ruleset"`; Fact logic.Fact `json:"fact"`; ExpectedRevision *uint64 `json:"expected_revision,omitempty"` }
 type factBatchRequest struct { Ruleset string `json:"ruleset"`; Operations []logic.FactOperation `json:"operations"`; ExpectedRevision *uint64 `json:"expected_revision,omitempty"` }
@@ -24,6 +25,12 @@ func (s server) version(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http
 func (s server) status(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"ok":true,"service":api.Service,"version":api.Version,"api":api.APIVersion,"rulesets":len(s.store.Names())}) }
 func (s server) rulesets(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"rulesets":s.store.Names()}) }
 
+func (s server) validate(w http.ResponseWriter,r *http.Request){
+	var req validateRequest; d:=json.NewDecoder(http.MaxBytesReader(w,r.Body,64<<10)); d.DisallowUnknownFields()
+	if err:=d.Decode(&req); err!=nil || req.Source=="" { writeJSON(w,http.StatusBadRequest,map[string]string{"error":"invalid request"}); return }
+	if err:=logic.Validate(req.Source); err!=nil { writeJSON(w,http.StatusUnprocessableEntity,map[string]string{"error":err.Error()}); return }
+	writeJSON(w,http.StatusOK,map[string]any{"ok":true,"valid":true})
+}
 func (s server) consult(w http.ResponseWriter,r *http.Request){
 	var req consultRequest; d:=json.NewDecoder(http.MaxBytesReader(w,r.Body,64<<10)); d.DisallowUnknownFields()
 	if err:=d.Decode(&req); err!=nil || req.Ruleset=="" || req.Source=="" { writeJSON(w,http.StatusBadRequest,map[string]string{"error":"invalid request"}); return }
@@ -65,6 +72,6 @@ func main(){
 	store,err:=logic.NewStore(dir); if err!=nil { log.Fatal(err) }
 	s:=server{store:store}; mux:=http.NewServeMux()
 	mux.HandleFunc("GET /healthz",s.health); mux.HandleFunc("GET /readyz",s.health); mux.HandleFunc("GET /v1/version",s.version); mux.HandleFunc("GET /v1/status",s.status)
-	mux.HandleFunc("GET /v1/rulesets",s.rulesets); mux.HandleFunc("GET /v1/facts",s.facts); mux.HandleFunc("POST /v1/facts/batch",s.factBatch); mux.HandleFunc("POST /v1/facts",s.factMutation); mux.HandleFunc("DELETE /v1/facts",s.factMutation); mux.HandleFunc("POST /v1/consult",s.consult); mux.HandleFunc("POST /v1/query",s.query); mux.HandleFunc("POST /v1/explain",s.explain)
+	mux.HandleFunc("GET /v1/rulesets",s.rulesets); mux.HandleFunc("POST /v1/validate",s.validate); mux.HandleFunc("GET /v1/facts",s.facts); mux.HandleFunc("POST /v1/facts/batch",s.factBatch); mux.HandleFunc("POST /v1/facts",s.factMutation); mux.HandleFunc("DELETE /v1/facts",s.factMutation); mux.HandleFunc("POST /v1/consult",s.consult); mux.HandleFunc("POST /v1/query",s.query); mux.HandleFunc("POST /v1/explain",s.explain)
 	log.Printf("BotLogic listening on %s with %d rulesets",addr,len(store.Names())); log.Fatal(http.ListenAndServe(addr,mux))
 }
