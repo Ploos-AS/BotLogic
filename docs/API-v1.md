@@ -32,7 +32,7 @@ Returns privacy-safe service status and loaded ruleset count.
 ### GET /v1/rulesets
 Lists loaded ruleset names.
 
-### POST /v1/consult
+### POST /v1/validate\n\nCompiles Prolog source in a fresh interpreter without creating or replacing a ruleset, writing files, or changing revisions. Request: `{"source":"may_execute(A,C) :- allowed(A,C)."}`. Returns `{"ok":true,"valid":true}` when valid.\n\n### POST /v1/consult
 Creates or atomically replaces static Prolog source.
 
 Request:
