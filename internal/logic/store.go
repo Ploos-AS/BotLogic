@@ -17,10 +17,11 @@ type Store struct {
 	mu sync.RWMutex
 	dir string
 	sets map[string]*Engine
+	revisions map[string]uint64
 }
 
 func NewStore(dir string) (*Store, error) {
-	s := &Store{dir: dir, sets: map[string]*Engine{}}
+	s := &Store{dir: dir, sets: map[string]*Engine{}, revisions: map[string]uint64{}}
 	if dir == "" { return s, nil }
 	if err := os.MkdirAll(dir, 0700); err != nil { return nil, err }
 	entries, err := os.ReadDir(dir); if err != nil { return nil, err }
@@ -33,6 +34,7 @@ func NewStore(dir string) (*Store, error) {
 		facts, err := s.readFacts(name); if err != nil { return nil, fmt.Errorf("load facts %q: %w", name, err) }
 		for _, fact := range sortedFacts(facts) { p, err := fact.prolog(); if err != nil { return nil, err }; if err := e.Consult(p); err != nil { return nil, err } }
 		s.sets[name] = e
+		rev, err := s.readRevision(name); if err != nil { return nil, err }; s.revisions[name] = rev
 	}
 	return s, nil
 }
@@ -54,7 +56,7 @@ func (s *Store) Put(name, source string) error {
 		if err:=tmp.Close(); err!=nil { return err }
 		if err:=os.Rename(tmpName,filepath.Join(s.dir,name+".pl")); err!=nil { return err }
 	}
-	s.mu.Lock(); s.sets[name]=e; s.mu.Unlock(); return nil
+	s.mu.Lock(); s.sets[name]=e; if _,ok:=s.revisions[name];!ok { s.revisions[name]=0 }; s.mu.Unlock(); return nil
 }
 
 func (s *Store) Query(ctx context.Context, name, query string) ([]map[string]string,error) {
@@ -68,3 +70,7 @@ func (s *Store) Explain(ctx context.Context, name, query string) (Explanation,er
 	if !ok { return Explanation{}, errors.New("ruleset not found") }
 	return e.Explain(ctx,query)
 }
+
+func (s *Store) Revision(name string)(uint64,error){ s.mu.RLock();defer s.mu.RUnlock();if _,ok:=s.sets[name];!ok{return 0,errors.New("ruleset not found")};return s.revisions[name],nil }
+func (s *Store) QueryAt(ctx context.Context,name,query string)([]map[string]string,uint64,error){ s.mu.RLock();e,ok:=s.sets[name];rev:=s.revisions[name];s.mu.RUnlock();if !ok{return nil,0,errors.New("ruleset not found")};rows,err:=e.Query(ctx,query);return rows,rev,err }
+func (s *Store) ExplainAt(ctx context.Context,name,query string)(Explanation,uint64,error){ s.mu.RLock();e,ok:=s.sets[name];rev:=s.revisions[name];s.mu.RUnlock();if !ok{return Explanation{},0,errors.New("ruleset not found")};x,err:=e.Explain(ctx,query);return x,rev,err }
