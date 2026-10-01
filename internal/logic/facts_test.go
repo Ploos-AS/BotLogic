@@ -48,3 +48,15 @@ func TestFactAtomEscapingCannotInjectClause(t *testing.T) {
 	rows, err = s.Query(context.Background(), "safe", `seen('x''). injected(evil). % ''').`)
 	if err != nil || len(rows) != 1 { t.Fatalf("payload did not round-trip safely: rows=%v err=%v", rows, err) }
 }
+
+func TestFactKeyDistinguishesArgumentBoundaries(t *testing.T) {
+	a := Fact{Predicate:"p", Args:[]string{"ab", "c"}}
+	b := Fact{Predicate:"p", Args:[]string{"a", "bc"}}
+	if a.key() == b.key() { t.Fatalf("fact keys collided: %q", a.key()) }
+}
+
+func TestFactKeyDistinguishesValuesWithNUL(t *testing.T) {
+	a := Fact{Predicate:"p", Args:[]string{"a\x00b", "c"}}
+	b := Fact{Predicate:"p", Args:[]string{"a", "b\x00c"}}
+	if a.key() == b.key() { t.Fatalf("fact keys collided: %q", a.key()) }
+}
