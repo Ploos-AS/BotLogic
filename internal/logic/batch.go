@@ -23,17 +23,20 @@ func emptyPredicateStubs(before,after map[string]Fact) []string {
 	return out
 }
 
-func (s *Store) ApplyFacts(name string, ops []FactOperation) error {
-	if len(ops)==0 { return errors.New("empty fact batch") }
-	if len(ops)>256 { return errors.New("too many fact operations") }
-	for _,op:=range ops { if op.Op!="assert"&&op.Op!="retract" { return errors.New("invalid fact operation") }; if err:=op.Fact.validate();err!=nil{return err} }
+func (s *Store) ApplyFacts(name string, ops []FactOperation) error { _,err:=s.ApplyFactsExpected(name,ops,nil);return 0,err }
+
+func (s *Store) ApplyFactsExpected(name string, ops []FactOperation, expected *uint64) (uint64,error) {
+	if len(ops)==0 { return 0,errors.New("empty fact batch") }
+	if len(ops)>256 { return 0,errors.New("too many fact operations") }
+	for _,op:=range ops { if op.Op!="assert"&&op.Op!="retract" { return 0,errors.New("invalid fact operation") }; if err:=op.Fact.validate();err!=nil{return err} }
 
 	s.mu.Lock(); defer s.mu.Unlock()
-	if _,ok:=s.sets[name];!ok{return errors.New("ruleset not found")}
-	current,err:=s.readFacts(name);if err!=nil{return err}; next:=cloneFacts(current)
+	if _,ok:=s.sets[name];!ok{return 0,errors.New("ruleset not found")}
+	currentRevision:=s.revisions[name]; if expected!=nil && *expected!=currentRevision { return 0,revisionConflict(*expected,currentRevision) }
+	current,err:=s.readFacts(name);if err!=nil{return 0,err}; next:=cloneFacts(current)
 	for _,op:=range ops { if op.Op=="assert" { next[op.Fact.key()]=op.Fact } else { delete(next,op.Fact.key()) } }
-	e,err:=s.rebuild(name,next);if err!=nil{return err}
-	for _,stub:=range emptyPredicateStubs(current,next) { if err:=e.Consult(stub);err!=nil{return err} }
+	e,err:=s.rebuild(name,next);if err!=nil{return 0,err}
+	for _,stub:=range emptyPredicateStubs(current,next) { if err:=e.Consult(stub);err!=nil{return 0,err} }
 	if err:=s.writeFacts(name,next);err!=nil{return err}
 	s.sets[name]=e
 	return nil
