@@ -60,3 +60,9 @@ func (s *Store) Query(ctx context.Context, name, query string) ([]map[string]str
 	if !ok { return nil, errors.New("ruleset not found") }
 	return e.Query(ctx,query)
 }
+
+func (s *Store) Explain(ctx context.Context, name, query string) (Explanation,error) {
+	s.mu.RLock(); e,ok:=s.sets[name]; s.mu.RUnlock()
+	if !ok { return Explanation{}, errors.New("ruleset not found") }
+	return e.Explain(ctx,query)
+}
