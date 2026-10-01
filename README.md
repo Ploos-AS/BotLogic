@@ -152,7 +152,7 @@ BotLogic M1.0 freezes the first stable standalone HTTP contract as **API v1**.
 - compatibility policy documented in `docs/API-v1.md`
 - PBMP, BotWeb and BotAI remain optional and outside the core API dependency graph
 
-M1.0 is only marked PASS after the full CI baseline succeeds.
+**M1.0 — PASS.** The complete API v1 baseline passes tests, vet and Alpine OCI build.
 
 ## Architecture
 
