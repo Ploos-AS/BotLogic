@@ -42,6 +42,28 @@ Response:
 {"solutions":[{"X":"alice"}]}
 ```
 
+## M0.1
+
+**M0.1 — PASS.** BotLogic supports named, isolated and persistent rulesets.
+
+- rulesets are separate Prolog engines
+- `GET /v1/rulesets` lists loaded rulesets
+- `POST /v1/consult` accepts `ruleset` and atomically replaces that ruleset
+- `POST /v1/query` requires `ruleset`
+- `BOTLOGIC_DATA_DIR` selects persistent storage (default `./data`)
+- rulesets reload on startup
+- names are validated to prevent path traversal
+
+Example:
+
+```json
+{"ruleset":"irc-policy","source":"trusted(alice). may_voice(X) :- trusted(X)."}
+```
+
+```json
+{"ruleset":"irc-policy","query":"may_voice(X)."}
+```
+
 ## Architecture
 
 ```text
