@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/Ploos-AS/BotLogic/internal/logic"
 	"github.com/Ploos-AS/BotLogic/internal/api"
+	"github.com/Ploos-AS/BotLogic/internal/logic"
 )
 
 type server struct{ store *logic.Store }
