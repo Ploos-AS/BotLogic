@@ -33,7 +33,7 @@ func (e *Engine) Query(ctx context.Context, q string) ([]map[string]string, erro
 
     var out []map[string]string
     for sols.Next() {
-        var row map[string]string
+        row := map[string]string{}
         if err := sols.Scan(&row); err != nil {
             return nil, err
         }
