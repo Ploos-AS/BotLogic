@@ -21,5 +21,5 @@ func TestExpectedRevisionConflictDoesNotCommit(t *testing.T){
 func TestQueryAtReportsSnapshotRevision(t *testing.T){
 	s,err:=NewStore(t.TempDir());if err!=nil{t.Fatal(err)};if err:=s.Put("state",`seen(X) :- present(X).`);err!=nil{t.Fatal(err)}
 	if err:=s.AssertFact("state",Fact{Predicate:"present",Args:[]string{"alice"}});err!=nil{t.Fatal(err)}
-	rows,r,err:=s.QueryAt(context.Background(),"state",`seen("alice").`);if err!=nil||len(rows)!=1||r!=1{t.Fatalf("rows=%v revision=%d err=%v",rows,r,err)}
+	rows,r,err:=s.QueryAt(context.Background(),"state",`seen('alice').`);if err!=nil||len(rows)!=1||r!=1{t.Fatalf("rows=%v revision=%d err=%v",rows,r,err)}
 }
