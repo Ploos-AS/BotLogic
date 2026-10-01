@@ -121,6 +121,26 @@ Example:
 {"ruleset":"irc-state","operations":[{"op":"assert","fact":{"predicate":"online","args":["alice"]}},{"op":"assert","fact":{"predicate":"authenticated","args":["alice"]}}]}
 ```
 
+## M0.5
+
+**M0.5 — PASS.** Fact state is revisioned for snapshot identification and optimistic concurrency.
+
+- every ruleset starts at revision `0`
+- each committed fact transaction increments the revision
+- revisions persist across restart
+- fact mutations and batches accept optional `expected_revision`
+- stale writers are rejected without changing state
+- query, explain and fact-list responses report their revision
+- successful mutation responses return the new revision
+
+Example guarded transaction:
+
+```json
+{"ruleset":"irc-state","expected_revision":7,"operations":[{"op":"assert","fact":{"predicate":"online","args":["alice"]}}]}
+```
+
+A client can read revision 7, compute its update, and safely reject the write if another client has already advanced the ruleset to revision 8.
+
 ## Architecture
 
 ```text
