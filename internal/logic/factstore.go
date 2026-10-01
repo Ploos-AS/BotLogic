@@ -26,7 +26,7 @@ func (s *Store) writeFacts(name string,m map[string]Fact) error {
 func (s *Store) rebuild(name string, facts map[string]Fact) (*Engine,error) {
 	if s.dir=="" { return nil,errors.New("persistent ruleset source unavailable") }
 	src,err:=os.ReadFile(filepath.Join(s.dir,name+".pl")); if err!=nil{return nil,err}; e:=New(); if err:=e.Consult(string(src));err!=nil{return nil,err}
-	for _,f:=range sortedFacts(facts){ preds[f.Predicate]=len(f.Args); p,err:=f.prolog();if err!=nil{return nil,err};if err:=e.Consult(p);err!=nil{return nil,err} }; return e,nil
+	for _,f:=range sortedFacts(facts){ p,err:=f.prolog();if err!=nil{return nil,err};if err:=e.Consult(p);err!=nil{return nil,err} }; return e,nil
 }
 
 func (s *Store) AssertFact(name string,f Fact) error { return s.ApplyFacts(name,[]FactOperation{{Op:"assert",Fact:f}}) }
