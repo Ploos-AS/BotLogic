@@ -30,6 +30,8 @@ func NewStore(dir string) (*Store, error) {
 		if !validRuleset.MatchString(name) { continue }
 		src, err := os.ReadFile(filepath.Join(dir, entry.Name())); if err != nil { return nil, err }
 		e := New(); if err := e.Consult(string(src)); err != nil { return nil, fmt.Errorf("load ruleset %q: %w", name, err) }
+		facts, err := s.readFacts(name); if err != nil { return nil, fmt.Errorf("load facts %q: %w", name, err) }
+		for _, fact := range sortedFacts(facts) { p, err := fact.prolog(); if err != nil { return nil, err }; if err := e.Consult(p); err != nil { return nil, err } }
 		s.sets[name] = e
 	}
 	return s, nil
