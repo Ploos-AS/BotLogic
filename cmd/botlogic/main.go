@@ -16,7 +16,7 @@ type consultRequest struct { Ruleset string `json:"ruleset"`; Source string `jso
 type queryRequest struct { Ruleset string `json:"ruleset"`; Query string `json:"query"` }
 
 func writeJSON(w http.ResponseWriter,status int,v any){ w.Header().Set("Content-Type","application/json"); w.WriteHeader(status); _=json.NewEncoder(w).Encode(v) }
-func (s server) health(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"ok":true,"service":"botlogic","version":"0.1.1-m0.1"}) }
+func (s server) health(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"ok":true,"service":"botlogic","version":"0.1.2-m0.2"}) }
 func (s server) rulesets(w http.ResponseWriter,_ *http.Request){ writeJSON(w,http.StatusOK,map[string]any{"rulesets":s.store.Names()}) }
 
 func (s server) consult(w http.ResponseWriter,r *http.Request){
@@ -32,12 +32,20 @@ func (s server) query(w http.ResponseWriter,r *http.Request){
 	rows,err:=s.store.Query(ctx,req.Ruleset,req.Query); if err!=nil { writeJSON(w,http.StatusUnprocessableEntity,map[string]string{"error":err.Error()}); return }
 	writeJSON(w,http.StatusOK,map[string]any{"ruleset":req.Ruleset,"solutions":rows})
 }
+func (s server) explain(w http.ResponseWriter,r *http.Request){
+	var req queryRequest; d:=json.NewDecoder(http.MaxBytesReader(w,r.Body,16<<10)); d.DisallowUnknownFields()
+	if err:=d.Decode(&req); err!=nil || req.Ruleset=="" || req.Query=="" { writeJSON(w,http.StatusBadRequest,map[string]string{"error":"invalid request"}); return }
+	ctx,cancel:=context.WithTimeout(r.Context(),2*time.Second); defer cancel()
+	explanation,err:=s.store.Explain(ctx,req.Ruleset,req.Query); if err!=nil { writeJSON(w,http.StatusUnprocessableEntity,map[string]string{"error":err.Error()}); return }
+	writeJSON(w,http.StatusOK,map[string]any{"ruleset":req.Ruleset,"explanation":explanation})
+}
+
 func main(){
 	addr:=os.Getenv("BOTLOGIC_LISTEN"); if addr=="" { addr="127.0.0.1:8091" }
 	dir:=os.Getenv("BOTLOGIC_DATA_DIR"); if dir=="" { dir="./data" }
 	store,err:=logic.NewStore(dir); if err!=nil { log.Fatal(err) }
 	s:=server{store:store}; mux:=http.NewServeMux()
 	mux.HandleFunc("GET /healthz",s.health); mux.HandleFunc("GET /readyz",s.health)
-	mux.HandleFunc("GET /v1/rulesets",s.rulesets); mux.HandleFunc("POST /v1/consult",s.consult); mux.HandleFunc("POST /v1/query",s.query)
+	mux.HandleFunc("GET /v1/rulesets",s.rulesets); mux.HandleFunc("POST /v1/consult",s.consult); mux.HandleFunc("POST /v1/query",s.query); mux.HandleFunc("POST /v1/explain",s.explain)
 	log.Printf("BotLogic listening on %s with %d rulesets",addr,len(store.Names())); log.Fatal(http.ListenAndServe(addr,mux))
 }
