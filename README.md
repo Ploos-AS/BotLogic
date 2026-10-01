@@ -85,6 +85,24 @@ Explain query:
 
 This boundary lets a caller such as BotAI turn the deterministic proof into natural language without making the LLM the authority for the decision.
 
+## M0.3
+
+**M0.3 — PASS.** Dynamic state can be managed as structured facts instead of generated Prolog source.
+
+- `POST /v1/facts` asserts a fact
+- `DELETE /v1/facts` retracts a fact
+- `GET /v1/facts?ruleset=...` lists facts
+- predicates and arity are bounded and validated
+- arguments are serialized as data, preventing Prolog source injection
+- facts persist separately from static `.pl` rules and reload on restart
+- retracting the last fact leaves an empty relation rather than an undefined-predicate error
+
+Example fact:
+
+```json
+{"ruleset":"irc-policy","fact":{"predicate":"trusted","args":["alice"]}}
+```
+
 ## Architecture
 
 ```text
