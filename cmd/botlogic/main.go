@@ -25,7 +25,7 @@ func (s server) consult(w http.ResponseWriter,r *http.Request){
 	var req consultRequest; d:=json.NewDecoder(http.MaxBytesReader(w,r.Body,64<<10)); d.DisallowUnknownFields()
 	if err:=d.Decode(&req); err!=nil || req.Ruleset=="" || req.Source=="" { writeJSON(w,http.StatusBadRequest,map[string]string{"error":"invalid request"}); return }
 	if err:=s.store.Put(req.Ruleset,req.Source); err!=nil { writeJSON(w,http.StatusUnprocessableEntity,map[string]string{"error":err.Error()}); return }
-	writeJSON(w,http.StatusOK,map[string]any{"ok":true,"ruleset":req.Ruleset,"revision":revision})
+	revision,_:=s.store.Revision(req.Ruleset); writeJSON(w,http.StatusOK,map[string]any{"ok":true,"ruleset":req.Ruleset,"revision":revision})
 }
 func (s server) query(w http.ResponseWriter,r *http.Request){
 	var req queryRequest; d:=json.NewDecoder(http.MaxBytesReader(w,r.Body,16<<10)); d.DisallowUnknownFields()
@@ -48,7 +48,7 @@ func (s server) facts(w http.ResponseWriter,r *http.Request){
 }
 func (s server) factMutation(w http.ResponseWriter,r *http.Request){
 	var req factRequest; d:=json.NewDecoder(http.MaxBytesReader(w,r.Body,16<<10)); d.DisallowUnknownFields(); if err:=d.Decode(&req);err!=nil||req.Ruleset=="" { writeJSON(w,http.StatusBadRequest,map[string]string{"error":"invalid request"});return }
-	op:="assert";if r.Method!="POST"{op="retract"}; revision,err:=s.store.ApplyFactsExpected(req.Ruleset,[]logic.FactOperation{{Op:op,Fact:req.Fact}},req.ExpectedRevision); if err!=nil { writeJSON(w,http.StatusUnprocessableEntity,map[string]string{"error":err.Error()});return }; writeJSON(w,http.StatusOK,map[string]any{"ok":true,"ruleset":req.Ruleset})
+	op:="assert";if r.Method!="POST"{op="retract"}; revision,err:=s.store.ApplyFactsExpected(req.Ruleset,[]logic.FactOperation{{Op:op,Fact:req.Fact}},req.ExpectedRevision); if err!=nil { writeJSON(w,http.StatusUnprocessableEntity,map[string]string{"error":err.Error()});return }; writeJSON(w,http.StatusOK,map[string]any{"ok":true,"ruleset":req.Ruleset,"revision":revision})
 }
 
 func (s server) factBatch(w http.ResponseWriter,r *http.Request){
