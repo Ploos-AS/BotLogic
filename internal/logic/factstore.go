@@ -1,11 +1,11 @@
 package logic
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func (s *Store) factsPath(name string) string { return filepath.Join(s.dir,name+".facts.json") }
@@ -27,7 +27,7 @@ func (s *Store) writeFacts(name string,m map[string]Fact) error {
 func (s *Store) rebuild(name string, facts map[string]Fact) (*Engine,error) {
 	if s.dir=="" { return nil,errors.New("persistent ruleset source unavailable") }
 	src,err:=os.ReadFile(filepath.Join(s.dir,name+".pl")); if err!=nil{return nil,err}; e:=New(); if err:=e.Consult(string(src));err!=nil{return nil,err}
-	for _,f:=range sortedFacts(facts){ p,err:=f.prolog();if err!=nil{return nil,err};if err:=e.Consult(p);err!=nil{return nil,err} }; return e,nil
+	preds:=map[string]int{}; for _,f:=range sortedFacts(facts){ preds[f.Predicate]=len(f.Args); p,err:=f.prolog();if err!=nil{return nil,err};if err:=e.Consult(p);err!=nil{return nil,err} }; return e,nil
 }
 
 func (s *Store) AssertFact(name string,f Fact) error {
@@ -36,8 +36,7 @@ func (s *Store) AssertFact(name string,f Fact) error {
 }
 func (s *Store) RetractFact(name string,f Fact) error {
 	if err:=f.validate();err!=nil{return err};s.mu.Lock();defer s.mu.Unlock();if _,ok:=s.sets[name];!ok{return errors.New("ruleset not found")}
-	facts,err:=s.readFacts(name);if err!=nil{return err};delete(facts,f.key());e,err:=s.rebuild(name,facts);if err!=nil{return err};if err:=s.writeFacts(name,facts);err!=nil{return err};s.sets[name]=e;return nil
+	facts,err:=s.readFacts(name);if err!=nil{return err}; oldPred:=f.Predicate; oldArity:=len(f.Args); delete(facts,f.key());e,err:=s.rebuild(name,facts);if err!=nil{return err}; still:=false; for _,x:=range facts { if x.Predicate==oldPred && len(x.Args)==oldArity { still=true; break } }; if !still { vars:=make([]string,oldArity); for i:=range vars { vars[i]="_" }; stub:=oldPred; if oldArity>0 { stub+="("+strings.Join(vars,",")+")" }; stub+=" :- fail."; if err:=e.Consult(stub);err!=nil{return err} };if err:=s.writeFacts(name,facts);err!=nil{return err};s.sets[name]=e;return nil
 }
 func (s *Store) Facts(name string)([]Fact,error){s.mu.RLock();defer s.mu.RUnlock();if _,ok:=s.sets[name];!ok{return nil,errors.New("ruleset not found")};m,err:=s.readFacts(name);if err!=nil{return nil,err};return sortedFacts(m),nil}
 
-var _ = context.Background
