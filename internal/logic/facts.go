@@ -23,7 +23,7 @@ func (f Fact) validate() error {
 }
 
 func (f Fact) key() string {
-	return f.Predicate+"\x00"+strings.Join(f.Args,"\x00")
+	return fmt.Sprintf("%s/%d\x00%s", f.Predicate, len(f.Args), strings.Join(f.Args,"\x00"))
 }
 
 func (f Fact) prolog() (string,error) {
