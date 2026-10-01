@@ -103,6 +103,24 @@ Example fact:
 {"ruleset":"irc-policy","fact":{"predicate":"trusted","args":["alice"]}}
 ```
 
+## M0.4
+
+**M0.4 — PASS.** Dynamic facts support bounded atomic batch transactions.
+
+- `POST /v1/facts/batch` applies up to 256 operations atomically
+- operations are `assert` or `retract`
+- the complete batch is validated before state changes
+- a candidate Prolog engine is built before commit
+- persistent fact state is atomically replaced before the live engine is published
+- invalid batches leave both persisted and live state unchanged
+- single-fact assert/retract use the same transaction core
+
+Example:
+
+```json
+{"ruleset":"irc-state","operations":[{"op":"assert","fact":{"predicate":"online","args":["alice"]}},{"op":"assert","fact":{"predicate":"authenticated","args":["alice"]}}]}
+```
+
 ## Architecture
 
 ```text
